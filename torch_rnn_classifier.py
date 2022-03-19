@@ -88,7 +88,54 @@ class TorchRNNDataset(torch.utils.data.Dataset):
         else:
             return self.sequences[idx], self.seq_lengths[idx]
 
+# Original model - one RNN Layer
+# class TorchRNNModel(nn.Module):
+#     def __init__(self,
+#             vocab_size,
+#             embed_dim=50,
+#             embedding=None,
+#             use_embedding=True,
+#             rnn_cell_class=nn.LSTM,
+#             hidden_dim=50,
+#             bidirectional=False,
+#             freeze_embedding=False):
+#         """
+#         Defines the core RNN computation graph. For an explanation of the
+#         parameters, see `TorchRNNClassifierModel`. This class handles just
+#         the RNN components of the overall classifier model.
+#         `TorchRNNClassifierModel` uses the output states to create a
+#         classifier.
 
+#         """
+#         super().__init__()
+#         self.vocab_size = vocab_size
+#         self.use_embedding = use_embedding
+#         self.embed_dim = embed_dim
+#         self.hidden_dim = hidden_dim
+#         self.bidirectional = bidirectional
+#         self.freeze_embedding = freeze_embedding
+#         # Graph
+#         if self.use_embedding:
+#             self.embedding = self._define_embedding(
+#                 embedding, vocab_size, self.embed_dim, self.freeze_embedding)
+#             self.embed_dim = self.embedding.embedding_dim
+#         self.rnn = rnn_cell_class(
+#             input_size=self.embed_dim,
+#             hidden_size=hidden_dim,
+#             batch_first=True,
+#             bidirectional=bidirectional)
+
+#     def forward(self, X, seq_lengths):
+#         if self.use_embedding:
+#             X = self.embedding(X)
+#         embs = torch.nn.utils.rnn.pack_padded_sequence(
+#             X,
+#             batch_first=True,
+#             lengths=seq_lengths.cpu(),
+#             enforce_sorted=False)
+#         outputs, state = self.rnn(embs)
+#         return outputs, state
+    
 class TorchRNNModel(nn.Module):
     def __init__(self,
             vocab_size,
@@ -124,6 +171,13 @@ class TorchRNNModel(nn.Module):
             hidden_size=hidden_dim,
             batch_first=True,
             bidirectional=bidirectional)
+        
+        self.rnn2 = rnn_cell_class(
+            input_size=hidden_dim,
+            hidden_size=hidden_dim,
+            batch_first=True,
+            bidirectional=bidirectional)
+        
 
     def forward(self, X, seq_lengths):
         if self.use_embedding:
@@ -133,7 +187,11 @@ class TorchRNNModel(nn.Module):
             batch_first=True,
             lengths=seq_lengths.cpu(),
             enforce_sorted=False)
+        
         outputs, state = self.rnn(embs)
+        outputs, state = self.rnn2(outputs)
+        outputs, state = self.rnn2(outputs)
+        
         return outputs, state
 
     @staticmethod
